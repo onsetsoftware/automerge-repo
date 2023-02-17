@@ -1,6 +1,6 @@
 import EventEmitter from "eventemitter3"
 import * as Automerge from "@automerge/automerge"
-import { ChangeOptions, Doc } from "@automerge/automerge"
+import { ChangeOptions, Doc, Extend } from "@automerge/automerge"
 import { ChannelId, PeerId } from "."
 
 import debug from "debug"
@@ -148,7 +148,7 @@ export class DocHandle<T> extends EventEmitter<DocHandleEvents<T>> {
     return this.doc
   }
 
-  change(callback: (doc: T) => void, options: ChangeOptions<T> = {}) {
+  change(callback: (doc: Extend<T>) => void, options: ChangeOptions<T> = {}) {
     this.value().then(() => {
       const newDoc = Automerge.change<T>(this.doc, options, callback)
       this.__notifyChangeListeners(newDoc)

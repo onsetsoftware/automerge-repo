@@ -1,4 +1,4 @@
-import { Doc } from "@automerge/automerge"
+import { Doc, Extend } from "@automerge/automerge"
 import {
   DocHandle,
   DocumentId,
@@ -25,7 +25,7 @@ export function useHandle<T>(documentId: DocumentId): DocHandle<T> {
   return handle
 }
 
-export type Change<T> = (cf: (d: T) => void) => void
+export type Change<T> = (cf: (d: Extend<T>) => void) => void
 
 export function useDocument<T>(
   documentId?: DocumentId
@@ -38,7 +38,7 @@ export function useDocument<T>(
     if (!handle) {
       return
     }
-    handle.value().then((v) => setDoc(v as Doc<T>))
+    handle.value().then(v => setDoc(v as Doc<T>))
     const listener = (h: DocHandleChangeEvent<T>) =>
       setDoc(h.handle.doc as Doc<T>) // TODO: this is kinda gross
     handle.on("change", listener)
@@ -48,7 +48,7 @@ export function useDocument<T>(
     }
   }, [handle])
 
-  const changeDoc = (changeFunction: (d: T) => void) => {
+  const changeDoc = (changeFunction: (d: Extend<T>) => void) => {
     if (!handle) {
       return
     }

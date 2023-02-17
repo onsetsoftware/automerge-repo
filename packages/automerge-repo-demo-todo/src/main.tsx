@@ -8,6 +8,7 @@ import ReactDOM from "react-dom/client"
 import { App } from "./App"
 import { State } from "./types"
 import "./index.css"
+import { List } from "@automerge/automerge"
 
 const repo = new Repo({
   network: [
@@ -31,7 +32,7 @@ const getRootId = () => {
   const handle = repo.create<State>()
   // set its initial state
   handle.change(s => {
-    s.todos = []
+    s.todos = [] as unknown as List<DocumentId>
   })
   return handle.documentId
 }
