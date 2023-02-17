@@ -21,4 +21,5 @@ jobs:
           ref: ${{ github.ref }}
       - run: |
           yarn install
+          yarn build
           yarn test
