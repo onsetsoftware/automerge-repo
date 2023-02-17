@@ -19,7 +19,10 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.ref }}
-      - run: |
+      - name: Install and Build
+        run: |
           yarn install
           yarn build
-          yarn test
+      - name: Run Tests
+        if: always()
+        run: yarn test
