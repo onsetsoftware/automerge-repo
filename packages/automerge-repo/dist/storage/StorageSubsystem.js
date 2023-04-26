@@ -32,6 +32,7 @@ export class StorageSubsystem {
         }
         let index = 0;
         while ((binary = await this.#storageAdapter.load(`${documentId}.incremental.${index}`))) {
+            this.#changeCount[documentId] = index + 1;
             if (binary && binary.length > 0)
                 result.push(binary);
             index += 1;

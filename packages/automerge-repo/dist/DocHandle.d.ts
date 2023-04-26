@@ -51,7 +51,7 @@ export declare const HandleState: {
     readonly READY: "ready";
     readonly ERROR: "error";
 };
-export type HandleState = typeof HandleState[keyof typeof HandleState];
+export type HandleState = (typeof HandleState)[keyof typeof HandleState];
 export declare const Event: {
     readonly CREATE: "CREATE";
     readonly LOAD: "LOAD";

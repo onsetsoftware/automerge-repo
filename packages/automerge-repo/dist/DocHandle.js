@@ -18,8 +18,8 @@ export class DocHandle//
         this.#timeoutDelay = timeoutDelay;
         this.#log = debug(`automerge-repo:dochandle:${documentId.slice(0, 5)}`);
         // initial doc
-        const doc = A.unstable.init({
-            patchCallback: (patches, before, after) => this.emit("patch", { handle: this, patches, before, after }),
+        const doc = A.init({
+            patchCallback: (patches, { before, after }) => this.emit("patch", { handle: this, patches, before, after }),
         });
         /**
          * Internally we use a state machine to orchestrate document loading and/or syncing, in order to
@@ -140,7 +140,9 @@ export class DocHandle//
     }
     /** `load` is called by the repo when the document is found in storage */
     load(binary) {
-        this.#machine.send(LOAD, { payload: { binary } });
+        if (binary.length) {
+            this.#machine.send(LOAD, { payload: { binary } });
+        }
     }
     /** `update` is called by the repo when we receive changes from the network */
     update(callback) {
