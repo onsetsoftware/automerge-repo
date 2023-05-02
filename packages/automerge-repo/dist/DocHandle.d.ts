@@ -7,6 +7,7 @@ export declare class DocHandle<T>//
     #private;
     documentId: DocumentId;
     constructor(documentId: DocumentId, { isNew, timeoutDelay }?: DocHandleOptions);
+    get doc(): A.unstable.Doc<T>;
     isReady: () => boolean;
     isDeleted: () => boolean;
     /**
@@ -19,12 +20,13 @@ export declare class DocHandle<T>//
     /** `update` is called by the repo when we receive changes from the network */
     update(callback: (doc: A.Doc<T>) => A.Doc<T>): void;
     /** `change` is called by the repo when the document is changed locally  */
-    change(callback: A.ChangeFn<T>, options?: A.ChangeOptions<T>): Promise<void>;
+    change(callback: A.ChangeFn<T>, options?: DocHandleChangeOptions<T>): Promise<void>;
     /** `request` is called by the repo when the document is not found in storage */
     request(): void;
     /** `delete` is called by the repo when the document is deleted */
     delete(): void;
 }
+type DocHandleChangeOptions<T> = Omit<A.ChangeOptions<T>, "patchCallback">;
 interface DocHandleOptions {
     isNew?: boolean;
     timeoutDelay?: number;
@@ -36,6 +38,10 @@ export interface DocHandleMessagePayload {
 }
 export interface DocHandleChangePayload<T> {
     handle: DocHandle<T>;
+    doc: A.Doc<T>;
+}
+export interface DocHandleDeletePayload<T> {
+    handle: DocHandle<T>;
 }
 export interface DocHandlePatchPayload<T> {
     handle: DocHandle<T>;
@@ -46,7 +52,7 @@ export interface DocHandlePatchPayload<T> {
 export interface DocHandleEvents<T> {
     change: (payload: DocHandleChangePayload<T>) => void;
     patch: (payload: DocHandlePatchPayload<T>) => void;
-    delete: (payload: DocHandleChangePayload<T>) => void;
+    delete: (payload: DocHandleDeletePayload<T>) => void;
 }
 export declare const HandleState: {
     readonly IDLE: "idle";

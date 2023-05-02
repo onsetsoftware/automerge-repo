@@ -94,7 +94,7 @@ export class DocHandle//
                     const newDoc = callback(oldDoc);
                     const docChanged = !headsAreSame(newDoc, oldDoc);
                     if (docChanged) {
-                        this.emit("change", { handle: this });
+                        this.emit("change", { handle: this, doc: newDoc });
                         if (!this.isReady()) {
                             this.#machine.send(REQUEST_COMPLETE);
                         }
@@ -110,6 +110,9 @@ export class DocHandle//
             .onTransition(({ value: state }, { type: event }) => this.#log(`${event} → ${state}`, this.#doc))
             .start();
         this.#machine.send(isNew ? CREATE : FIND);
+    }
+    get doc() {
+        return A.clone(this.#doc);
     }
     // PRIVATE
     /** Returns the current document */
