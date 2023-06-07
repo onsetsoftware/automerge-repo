@@ -34,7 +34,7 @@ jobs:
       - name: Install Dependencies
         id: deps
         run: |
-          yarn
+          yarn install --no-lockfile
       - name: Build Release
         id: build_release
         run: |
@@ -46,11 +46,11 @@ jobs:
       - name: Publish Release
         if: steps.tests.outcome == 'success'
         run: |
-          if [ "$NPM_TOKEN" = "" ]; then
+          if [ "$NODE_AUTH_TOKEN" = "" ]; then
             echo "You need a NPM_TOKEN secret in order to publish."
             false
           fi
-          echo //registry.npmjs.org/:_authToken=${NPM_TOKEN} > .npmrc
+          echo //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN} > .npmrc
           EXTRA_ARGS=""
           if [[ $VERSION == *"alpha."* ]] || [[ $VERSION == *"beta."* ]] || [[ $VERSION == *"rc."* ]]; then
             echo "Is pre-release version"
@@ -59,7 +59,7 @@ jobs:
           yarn pub ${VERSION} $EXTRA_ARGS
         env:
           VERSION: ${{ needs.check_if_version_upgraded.outputs.version }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Tag release
         if: steps.tests.outcome == 'success'
         uses: softprops/action-gh-release@v1

@@ -1,6 +1,6 @@
 {
   "name": "automerge-repo-monorepo",
-  "version": "0.0.55",
+  "version": "0.0.55-alpha.0",
   "description": "Automerge Repo monorepo",
   "main": "packages/automerge-repo/dist/index.js",
   "repository": "https://github.com/pvh/automerge-repo",
