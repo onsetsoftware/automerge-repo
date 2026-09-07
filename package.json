@@ -33,7 +33,6 @@
     "node": ">=22.13",
     "pnpm": "^11"
   },
-  "packageManager": "pnpm@11.5.0",
   "devDependencies": {
     "@automerge/automerge": "catalog:",
     "@automerge/automerge-subduction": "catalog:",
