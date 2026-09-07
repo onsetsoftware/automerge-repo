@@ -29,18 +29,31 @@
 export { DocHandle } from "./DocHandle.js"
 export {
   isValidAutomergeUrl,
+  isValidDocumentUrl,
+  isValidUrlScheme,
   isValidDocumentId,
   parseAutomergeUrl,
+  parseDocumentUrl,
   stringifyAutomergeUrl,
+  stringifyDocumentUrl,
   interpretAsDocumentId,
   documentIdToBinary,
   generateAutomergeUrl,
   encodeHeads,
   decodeHeads,
 } from "./AutomergeUrl.js"
-export type { ParsedAutomergeUrl, UrlOptions } from "./AutomergeUrl.js"
+export type {
+  ParsedAutomergeUrl,
+  ParsedDocumentUrl,
+  UrlOptions,
+} from "./AutomergeUrl.js"
 export { Repo } from "./Repo.js"
-export { automergeDocType, defineDocumentType, isDocumentType } from "./crdt.js"
+export {
+  automergeDocType,
+  defineDocumentType,
+  isDocumentType,
+  urlSchemeOf,
+} from "./crdt.js"
 export type {
   AnyDocumentType,
   AutomergeDocType,
@@ -52,6 +65,7 @@ export type {
   SedimentreeBlob,
   SedimentreeMeta,
   StateOf,
+  UrlSchemeOf,
   ViewOf,
 } from "./crdt.js"
 export { initSubduction } from "./initSubduction.js"
@@ -104,6 +118,7 @@ export type {
   DocHandleMode,
   DocHandleOptions,
   DocHandleState,
+  DocHandleUrl,
   DocHandleOutboundEphemeralMessagePayload,
   HandleState,
   SyncInfo,

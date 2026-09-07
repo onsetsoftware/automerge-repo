@@ -3,11 +3,17 @@ import type { Prop } from "@automerge/automerge/slim"
 import {
   decodeHeads,
   encodeHeads,
-  stringifyAutomergeUrl,
+  stringifyDocumentUrl,
 } from "./AutomergeUrl.js"
 import { Document } from "./Document.js"
 import { encode } from "./helpers/cbor.js"
-import type { AutomergeUrl, DocumentId, PeerId, UrlHeads } from "./types.js"
+import type {
+  AutomergeUrl,
+  DocumentId,
+  DocumentUrl,
+  PeerId,
+  UrlHeads,
+} from "./types.js"
 import { StorageId } from "./storage/types.js"
 import {
   isCursorMarker,
@@ -40,7 +46,9 @@ import {
   type AnyDocumentType,
   type ChangeOf,
   type StateOf,
+  type UrlSchemeOf,
   type ViewOf,
+  urlSchemeOf,
 } from "./crdt.js"
 
 /**
@@ -86,6 +94,10 @@ export type DocHandleState<T, Mode extends DocHandleMode> = Mode extends "crdt"
 export type DocHandleChange<T, Mode extends DocHandleMode> = Mode extends "crdt"
   ? ChangeOf<T>
   : A.ChangeFn<T> | SubChangeFn<T> | T
+
+export type DocHandleUrl<T, Mode extends DocHandleMode> = Mode extends "crdt"
+  ? DocumentUrl<UrlSchemeOf<T>>
+  : AutomergeUrl
 
 export type CrdtDocHandle<C extends AnyDocumentType> = DocHandle<C, "crdt">
 
@@ -147,20 +159,21 @@ export class DocHandle<T, Mode extends DocHandleMode = "value"> {
   /**
    * This handle's URL.
    * The URL might include a path, or heads, both optionally.
-   * like this: `automerge:<docId>[/path][#heads]`;
+   * like this: `<scheme>:<docId>[/path][#heads]`.
    */
-  get url(): AutomergeUrl {
+  get url(): DocHandleUrl<T, Mode> {
     const segments: Segment[] | undefined =
       this.#path.length > 0 || this.#range
         ? this.#range
           ? [...(this.#path as Segment[]), this.#range]
           : (this.#path as Segment[])
         : undefined
-    return stringifyAutomergeUrl({
+    return stringifyDocumentUrl({
       documentId: this.documentId,
       heads: this.#fixedHeads,
       segments,
-    })
+      scheme: urlSchemeOf(this.#document.documentType),
+    }) as DocHandleUrl<T, Mode>
   }
 
   // TODO: remove the legacy state-machine accessors below in the next major.

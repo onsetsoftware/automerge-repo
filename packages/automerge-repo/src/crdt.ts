@@ -2,6 +2,7 @@ import { next as Automerge } from "@automerge/automerge/slim"
 import { hasAtLeastOneKey } from "./helpers/has-at-least-one-key.js"
 import { isPlainObject } from "./helpers/isPlainObject.js"
 import type { DocumentId, PeerId } from "./types.js"
+import { isValidUrlScheme } from "./AutomergeUrl.js"
 
 export type SedimentreeMeta =
   | { kind: "commit"; head: string; parents: string[] }
@@ -37,8 +38,17 @@ export interface DocumentTypeContext {
   crdtName: string
 }
 
-export interface DocumentType<State, View, Change, Init> {
+export interface DocumentType<
+  State,
+  View,
+  Change,
+  Init,
+  Scheme extends string = "automerge",
+> {
   readonly name: string
+
+  /** URL scheme for this document type. Defaults to `automerge`. */
+  readonly urlScheme?: Scheme
 
   /** Empty local state for a find/load path before any data has arrived. */
   empty(ctx: DocumentTypeContext): State
@@ -73,23 +83,37 @@ export interface DocumentType<State, View, Change, Init> {
   }
 }
 
-export type AnyDocumentType = DocumentType<any, any, any, any>
+export type AnyDocumentType = DocumentType<any, any, any, any, any>
 
 export type StateOf<C> =
-  C extends DocumentType<infer State, any, any, any> ? State : Automerge.Doc<C>
+  C extends DocumentType<infer State, any, any, any, any>
+    ? State
+    : Automerge.Doc<C>
 
 export type ViewOf<C> =
-  C extends DocumentType<any, infer View, any, any>
+  C extends DocumentType<any, infer View, any, any, any>
     ? View
     : Automerge.Doc<NonNullable<C>> | Extract<C, undefined>
 
 export type ChangeOf<C> =
-  C extends DocumentType<any, any, infer Change, any>
+  C extends DocumentType<any, any, infer Change, any, any>
     ? Change
     : Automerge.ChangeFn<C>
 
 export type InitOf<C> =
-  C extends DocumentType<any, any, any, infer Init> ? Init : C | undefined
+  C extends DocumentType<any, any, any, infer Init, any> ? Init : C | undefined
+
+/**
+ * The URL scheme of a document type. `"automerge"` when the type declares
+ * no `urlScheme`; `string` when the scheme is not known at compile time.
+ */
+export type UrlSchemeOf<C> = C extends { urlScheme?: infer S }
+  ? [S] extends [string]
+    ? string extends S
+      ? string
+      : S
+    : "automerge"
+  : "automerge"
 
 export type AutomergeDocType<T> = DocumentType<
   Automerge.Doc<T>,
@@ -98,10 +122,30 @@ export type AutomergeDocType<T> = DocumentType<
   T | undefined
 > & { readonly kind: "automerge" }
 
-export function defineDocumentType<State, View, Change, Init>(
-  type: DocumentType<State, View, Change, Init>
-): DocumentType<State, View, Change, Init> {
+export function defineDocumentType<
+  State,
+  View,
+  Change,
+  Init,
+  Scheme extends string = "automerge",
+>(
+  type: DocumentType<State, View, Change, Init, Scheme>
+): DocumentType<State, View, Change, Init, Scheme> {
   return type
+}
+
+export function urlSchemeOf<C extends AnyDocumentType>(
+  type: C
+): UrlSchemeOf<C> {
+  const scheme = type.urlScheme ?? "automerge"
+  if (!isValidUrlScheme(scheme)) {
+    throw new Error(
+      `Document type ${JSON.stringify(type.name)} has invalid urlScheme ${JSON.stringify(
+        scheme
+      )}`
+    )
+  }
+  return scheme as UrlSchemeOf<C>
 }
 
 export function isDocumentType(value: unknown): value is AnyDocumentType {

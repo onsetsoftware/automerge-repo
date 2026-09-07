@@ -1,8 +1,11 @@
-/**
- * A branded string representing a URL for a document, in the form `automerge:<base58check encoded
- * string>`; for example, `automerge:4NMNnkMhL8jXrdJ9jamS58PAVdXu`.
- */
-export type AutomergeUrl = string & { __documentUrl: true } // for opening / linking
+/** A branded document URL in the form `<scheme>:<documentId>[/path][#heads]`. */
+export type DocumentUrl<Scheme extends string = string> = string & {
+  __documentUrl: true
+  readonly __urlScheme?: Scheme
+}
+
+/** A document URL using the `automerge` scheme. */
+export type AutomergeUrl = DocumentUrl<"automerge">
 
 /**
  * The base58check-encoded UUID of a document. This is the string following the `automerge:`
@@ -22,7 +25,7 @@ export type BinaryDocumentId = Uint8Array & { __binaryDocumentId: true } // for 
 export type LegacyDocumentId = string & { __legacyDocumentId: true }
 
 export type AnyDocumentId =
-  | AutomergeUrl
+  | DocumentUrl
   | DocumentId
   | BinaryDocumentId
   | LegacyDocumentId

@@ -7,9 +7,19 @@ import {
 } from "@automerge/automerge-subduction"
 import {
   automergeDocType,
+  generateAutomergeUrl,
+  isValidDocumentUrl,
+  parseAutomergeUrl,
   Repo,
+  stringifyDocumentUrl,
+  urlSchemeOf,
+  type AnyDocumentType,
+  type AutomergeUrl,
   type CrdtDocHandle,
+  type DocumentType,
+  type DocumentUrl,
   type PeerId,
+  type UrlSchemeOf,
 } from "../src/index.js"
 import {
   gCounterDocType,
@@ -188,4 +198,91 @@ describe("multi-CRDT document types", () => {
     const bobCounter = await bob.find(aliceCounter.url, counterType)
     expect(bobCounter.doc()).toEqual({ value: 3 })
   }, 10_000)
+
+  it("uses and validates a document type's URL scheme", async () => {
+    const repo = new Repo()
+    cleanups.push(() => repo.shutdown())
+
+    const counterType = {
+      ...gCounterDocType(),
+      urlScheme: "counter" as const,
+    }
+    const counter = repo.create(counterType)
+
+    expectTypeOf(counter.url).toEqualTypeOf<DocumentUrl<"counter">>()
+    expect(counter.url).toBe(`counter:${counter.documentId}`)
+    expect(isValidDocumentUrl(counter.url, urlSchemeOf(counterType))).toBe(true)
+    expect(toSedimentreeId(counter.url).toString()).toBe(
+      toSedimentreeId(counter.documentId).toString()
+    )
+    expect(await repo.find(counter.url, counterType)).toBe(counter)
+
+    const wrongUrl = stringifyDocumentUrl({
+      documentId: counter.documentId,
+      scheme: "wrong",
+    })
+    await expect(repo.find(wrongUrl, counterType)).rejects.toThrow(
+      /scheme "wrong" does not match document type "counter"/
+    )
+  })
+
+  it("requires a type to open an unknown custom-scheme URL", () => {
+    const repo = new Repo()
+    cleanups.push(() => repo.shutdown())
+
+    const url = stringifyDocumentUrl({
+      documentId: parseAutomergeUrl(generateAutomergeUrl()).documentId,
+      scheme: "counter",
+    }) as DocumentUrl
+
+    expect(() => repo.findWithProgress(url)).toThrow(
+      /scheme "counter" requires a matching document type/
+    )
+  })
+
+  it("rejects a same-named type with a different scheme on an open document", async () => {
+    const repo = new Repo()
+    cleanups.push(() => repo.shutdown())
+
+    const created = repo.create({ ...gCounterDocType(), urlScheme: "one" })
+    const otherType = { ...gCounterDocType(), urlScheme: "two" }
+    const otherUrl = stringifyDocumentUrl({
+      documentId: created.documentId,
+      scheme: "two",
+    })
+
+    await expect(repo.find(otherUrl, otherType)).rejects.toThrow(
+      /already open with URL scheme "one", not "two"/
+    )
+    expect(created.url).toBe(`one:${created.documentId}`)
+  })
+
+  it("types the URL scheme of a document type", () => {
+    // No urlScheme declared: automerge.
+    expectTypeOf<
+      UrlSchemeOf<DocumentType<unknown, unknown, unknown, unknown>>
+    >().toEqualTypeOf<"automerge">()
+    expectTypeOf<
+      UrlSchemeOf<ReturnType<typeof gCounterDocType>>
+    >().toEqualTypeOf<"automerge">()
+    // Literal scheme is preserved.
+    expectTypeOf<
+      UrlSchemeOf<DocumentType<unknown, unknown, unknown, unknown, "notes">>
+    >().toEqualTypeOf<"notes">()
+    // Unknown-at-compile-time scheme stays string, not automerge.
+    expectTypeOf<
+      UrlSchemeOf<DocumentType<unknown, unknown, unknown, unknown, string>>
+    >().toEqualTypeOf<string>()
+    expectTypeOf<UrlSchemeOf<AnyDocumentType>>().toEqualTypeOf<string>()
+
+    // A widened (non-const) urlScheme must not be typed as an AutomergeUrl.
+    const widened = { ...gCounterDocType(), urlScheme: "counter" }
+    expectTypeOf<UrlSchemeOf<typeof widened>>().toEqualTypeOf<string>()
+    const repo = new Repo()
+    cleanups.push(() => repo.shutdown())
+    const handle = repo.create(widened)
+    expectTypeOf(handle.url).toEqualTypeOf<DocumentUrl<string>>()
+    expectTypeOf(handle.url).not.toEqualTypeOf<AutomergeUrl>()
+    expect(handle.url).toBe(`counter:${handle.documentId}`)
+  })
 })

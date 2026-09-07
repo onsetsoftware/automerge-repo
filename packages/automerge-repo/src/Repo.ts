@@ -5,8 +5,9 @@ import {
   binaryToDocumentId,
   generateAutomergeUrl,
   interpretAsDocumentId,
-  isValidAutomergeUrl,
+  isValidDocumentUrl,
   parseAutomergeUrl,
+  parseDocumentUrl,
 } from "./AutomergeUrl.js"
 import { DocHandle, type CrdtDocHandle } from "./DocHandle.js"
 import type { DocumentSource } from "./DocumentSource.js"
@@ -68,6 +69,7 @@ import { truePromiseFactory } from "./helpers/truePromiseFactory.js"
 import {
   automergeDocType,
   isDocumentType,
+  urlSchemeOf,
   type AnyDocumentType,
   type InitOf,
 } from "./crdt.js"
@@ -479,11 +481,18 @@ export class Repo extends EventEmitter<RepoEvents> {
     documentType: AnyDocumentType = this.#automergeDocumentType
   ): DocumentQuery<unknown, DocHandle<any, any>> {
     const crdtName = documentType.name
+    const urlScheme = urlSchemeOf(documentType)
     const existing = this.#queries[documentId]
     if (existing) {
       if (existing.handle.crdtName !== crdtName) {
         throw new Error(
           `Document ${documentId} is already open as ${existing.handle.crdtName}, not ${crdtName}`
+        )
+      }
+      const existingScheme = urlSchemeOf(existing.handle.documentType)
+      if (existingScheme !== urlScheme) {
+        throw new Error(
+          `Document ${documentId} is already open with URL scheme "${existingScheme}", not "${urlScheme}"`
         )
       }
       return existing
@@ -748,33 +757,39 @@ export class Repo extends EventEmitter<RepoEvents> {
     const explicitDocumentType = isDocumentType(documentTypeOrOptions)
       ? documentTypeOrOptions
       : undefined
-    const parsed = isValidAutomergeUrl(id)
-      ? parseAutomergeUrl(id)
+    const parsed = isValidDocumentUrl(id)
+      ? parseDocumentUrl(id)
       : {
           documentId: interpretAsDocumentId(id),
+          scheme: undefined,
           heads: undefined,
           segments: undefined,
         }
-    const { documentId, heads, segments } = parsed
+    const { documentId, scheme, heads, segments } = parsed
+    const loadedDocumentType = this.#queries[documentId]?.handle.documentType
     const documentType =
-      explicitDocumentType ??
-      this.#queries[documentId]?.handle.documentType ??
-      this.#automergeDocumentType
+      explicitDocumentType ?? loadedDocumentType ?? this.#automergeDocumentType
     const crdtName = documentType.name
 
-    // ensureQuery creates the query, handle, sets up all sources, and
-    // registers with the sync layer (no-ops if already added).
-    if (!this.#queries[documentId]) {
-      this.#ensureQuery(documentId, undefined, documentType)
-    } else if (this.#queries[documentId].handle.crdtName !== crdtName) {
+    if (scheme !== undefined && scheme !== urlSchemeOf(documentType)) {
+      if (!explicitDocumentType && !loadedDocumentType) {
+        throw new Error(
+          `Cannot find "${id}": URL scheme "${scheme}" requires a matching document type`
+        )
+      }
       throw new Error(
-        `Document ${documentId} is already open as ${this.#queries[documentId].handle.crdtName}, not ${crdtName}`
+        `Cannot find "${id}": URL scheme "${scheme}" does not match document type "${crdtName}"`
       )
     }
-    const query = this.#queries[documentId] as DocumentQuery<
-      any,
-      DocHandle<any, any>
-    >
+
+    // ensureQuery creates the query, handle, sets up all sources, and
+    // registers with the sync layer. For an already-open document it
+    // checks that the type name and URL scheme match.
+    const query = this.#ensureQuery(
+      documentId,
+      undefined,
+      documentType
+    ) as DocumentQuery<any, DocHandle<any, any>>
 
     // A URL can carry both fixed heads (`#h1|h2`) and a path suffix
     // (`/a/@0/b`). Layer the heads projection first (it gates readiness on

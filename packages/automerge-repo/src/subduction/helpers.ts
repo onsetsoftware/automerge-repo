@@ -2,6 +2,7 @@ import { SedimentreeId } from "@automerge/automerge-subduction/slim"
 import { AnyDocumentId, DocumentId } from "../types.js"
 import bs58check from "bs58check"
 import { type Doc } from "@automerge/automerge/slim"
+import { isValidDocumentUrl, parseDocumentUrl } from "../AutomergeUrl.js"
 
 export function toSedimentreeId(id: AnyDocumentId): SedimentreeId {
   const docIdBytes = toBinaryDocumentId(id)
@@ -26,8 +27,8 @@ function toBinaryDocumentId(id: AnyDocumentId): Uint8Array {
   }
 
   if (typeof id === "string") {
-    if (id.startsWith("automerge:")) {
-      return bs58check.decode(id.slice("automerge:".length))
+    if (isValidDocumentUrl(id)) {
+      return parseDocumentUrl(id).binaryDocumentId
     }
 
     // Legacy hex-encoded UUID
